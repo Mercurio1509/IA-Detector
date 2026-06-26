@@ -1,53 +1,152 @@
-name: AI Content Detector
+name: AI Detector
+
 
 on:
+
+  pull_request:
+
+    paths:
+      - '**/*.tex'
+      - '**/*.docx'
+      - '**/*.pdf'
+      - 'tools/ai_detector.py'
+      - '.github/workflows/ai-check.yml'
+
+
   push:
+
     branches:
       - main
 
-  pull_request:
-    branches:
-      - main
+
+
+permissions:
+
+  contents: read
+
+  pull-requests: write
+
 
 
 jobs:
 
-  detect-ai:
+
+  ai-check:
+
 
     runs-on: ubuntu-latest
 
 
+
     steps:
 
-    - name: Checkout repository
-      uses: actions/checkout@v4
+
+      - name: Checkout
+
+        uses: actions/checkout@v4
 
 
-    - name: Install Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
+
+      # Pandoc para extracción LaTeX
+
+      - name: Install pandoc
+
+        run: |
+
+          sudo apt-get update
+
+          sudo apt-get install -y pandoc
 
 
-    - name: Install dependencies
-      run: |
 
-        pip install transformers torch python-docx
+      - name: Setup Python
 
+        uses: actions/setup-python@v5
 
-    - name: Run AI detector
-      env:
-        AI_THRESHOLD: 0.18
-        AI_REPORT_FILE: reports/report.md
-      run: |
-        mkdir -p reports
-        python tools/ai_detector.py docs/paper/Avance_1_Grupo_3.pdf
+        with:
+
+          python-version: "3.12"
 
 
-    - name: Upload report
-      uses: actions/upload-artifact@v4
-      with:
 
-        name: ai-report
+      # Dependencias del detector
 
-        path: reports/report.json
+      - name: Install AI dependencies
+
+        run: |
+
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+          pip install "transformers==4.46.3"
+
+          pip install sentencepiece
+
+          pip install python-docx
+
+          pip install pypdf
+
+
+
+      # Guarda modelo HuggingFace
+
+      - name: Cache detector model
+
+        uses: actions/cache@v4
+
+        with:
+
+          path: ~/.cache/huggingface
+
+          key: ai-detector-${{ hashFiles('tools/ai_detector.py') }}
+
+
+
+      # Ejecutar detector
+
+      - name: Run AI detector
+
+        id: detector
+
+        continue-on-error: true
+
+        env:
+
+
+          AI_THRESHOLD: "0.18"
+
+          AI_REPORT_FILE: ai-report.md
+
+
+        run:
+
+          python tools/ai_detector.py docs/paper/main.tex
+
+
+
+      # Mostrar reporte en PR
+
+      - name: Comment PR report
+
+        if: github.event_name == 'pull_request' && always()
+
+        uses: thollander/actions-comment-pull-request@v3
+
+        with:
+
+          file-path: ai-report.md
+
+          comment-tag: ai-detector
+
+
+
+      # Bloquear si supera límite
+
+      - name: Enforce threshold
+
+        if: steps.detector.outcome == 'failure'
+
+        run: |
+
+          echo "AI threshold exceeded"
+
+          exit 1
