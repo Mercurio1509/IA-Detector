@@ -36,15 +36,13 @@ jobs:
 
 
     - name: Run AI detector
-    env:
-
+      env:
         AI_THRESHOLD: 0.18
         AI_REPORT_FILE: reports/report.md
-
-    run: |
-
+      run: |
         mkdir -p reports
-        python scripts/ai_check.py docs/paper/Avance_1_Grupo_3.pdf
+        python tools/ai_detector.py docs/paper/Avance_1_Grupo_3.pdf
+
 
     - name: Upload report
       uses: actions/upload-artifact@v4
