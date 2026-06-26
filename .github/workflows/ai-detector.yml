@@ -119,7 +119,7 @@ jobs:
 
         run:
 
-          python tools/ai_detector.py docs/paper/main.tex
+          python tools/ai_detector.py docs/paper/Avance_1_Grupo_3.pdf
 
 
 
