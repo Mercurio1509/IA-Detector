@@ -1,0 +1,50 @@
+name: AI Content Detector
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+
+jobs:
+
+  detect-ai:
+
+    runs-on: ubuntu-latest
+
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+
+    - name: Install dependencies
+      run: |
+
+        pip install transformers torch python-docx
+
+
+    - name: Run AI detector
+      run: |
+
+        python tools/ai_detector.py
+
+
+    - name: Upload report
+      uses: actions/upload-artifact@v4
+      with:
+
+        name: ai-report
+
+        path: reports/report.json
